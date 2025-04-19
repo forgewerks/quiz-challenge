@@ -1,14 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Forge - Quiz App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+    <div class="container container-blue">
+        <div class="welcome-face">
+            <canvas id="face-canvas" width="500" height="350"></canvas>
+            <div class="face-speech">Click over there and get ready to test your knowledge</div>
+        </div>
+        <a href="./quiz.html" class="clickable-link">
+            <div id="title-inicial">
+                <h1>QUIZZLER</h1>
+                <img src="./resources/Forge.png" alt="byForge" class="title-by-forge">
+                <h6>Let’s start the quiz →</h6>
+            </div>
+        </a>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.141.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.141.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="./src/3d.js"></script>
+</body>
 </html>
