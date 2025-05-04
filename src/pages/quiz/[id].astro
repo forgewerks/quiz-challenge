@@ -1,0 +1,390 @@
+---
+import AnimatedBackground from "../../components/AnimatedBackground.astro";
+import Layout from "../../layouts/Layout.astro";
+import Figure from "../../components/Figure.astro";
+import Public from "../../components/Public.astro";
+import { questions } from "../../store/questions";
+import { Clock } from "@lucide/astro";
+
+const fragmentCount = Astro.url.searchParams.get('fc') ? parseInt(Astro.url.searchParams.get('fc') || '') : 0
+const letters = Astro.url.searchParams.get('l') ? JSON.parse(Astro.url.searchParams.get('l') || '') : []
+
+const { id } = Astro.params as { id: string };
+
+const questionIndex = questions.get().findIndex((q) => q.id === parseInt(id));
+const question = questionIndex !== -1 ? questions.get()[questionIndex] : null;
+if (!question) {
+    return Astro.redirect("/");
+}
+const nextId = questionIndex !== -1 && questionIndex + 1 < questions.get().length ? questions.get()[questionIndex + 1].id : null;
+---
+<Layout title=`Question ${questionIndex + 1}` >
+	<AnimatedBackground mainColor="C8D2DA" secondaryColor="2A2C2D", figureColor='4242E0', secondaryFigureColor='959EA6'/>
+    <main class="min-w-screen min-h-screen w-full overflow-hidden">
+        <Figure/>
+        <Public/>
+        <h1 class="question text-center mt-20" data-next-question={nextId} transition:name="score">Question {questionIndex + 1} / {questions.get().length}</h1>
+        <p class="text-center max-w-[50%] mx-auto">{question?.question}</p>
+		<div class="flex items-center justify-center gap-2" transition:name="timer">
+            <Clock class="w-4 h-4" />
+			<span class={`font-medium`} id="timer">0s</span>
+		</div>
+		<section class="Options flex items-center justify-center flex-col gap-2" data-options={JSON.stringify(question?.correct_answers)}>
+			{
+				Object.entries(question?.answers || {}).map(([key, answer], index) => 
+				(
+					!!answer  && (
+						<div class="fragment-container max-w-[50%] w-full">
+							<div
+								class={`valid-answer p-4 border-2 w-full cursor-pointer transition-all bg-white answer-${String.fromCharCode(97 + index)} ${fragmentCount > 0 && letters.includes(String.fromCharCode(66 + index).toLowerCase()) ? 'appearing' : ''}`}
+								transition:name={`${key}`}
+							>
+								<div class="flex items-center justify-start">
+									<span class={`letter-answer rounded-full border-2 w-10 h-10 min-h-10 min-w-10 flex items-center justify-center`}>
+										{String.fromCharCode(65 + index)}
+									</span>
+									<p class={`answer ml-2`}>{answer}</p>
+								</div>
+							</div>
+                            {Array.from({ length: fragmentCount }).map((_, i) => (
+                                letters.includes(String.fromCharCode(65 + index).toLowerCase()) && (
+                                    <div class="fragment p-4 border-2 w-full cursor-pointer transition-all bg-white" transition:name={`${String.fromCharCode(65 + index).toLowerCase()}${i}`}>
+                                        <div class="flex items-center justify-start">
+                                            <span class={`letter-answer rounded-full border-2 w-10 h-10 min-h-10 min-w-10 flex items-center justify-center`}>
+                                                {String.fromCharCode(65 + index)}
+                                            </span>
+                                            <p class={`answer ml-2`}>{answer}</p>
+                                        </div>
+                                    </div>
+                                )
+                            ))}
+						</div>
+					)
+				))
+			}
+		</section>
+        <div class="flex items-center justify-center mt-4">
+            <button
+              class={`next-button px-4 py-2 text-white`}
+              disabled={true}
+            >
+              {questionIndex === questions.get().length - 1 ? 'Finish' : 'Next'}
+            </button>
+          </div>
+    </main>
+</Layout>
+<style>
+    h1{
+		font-weight: 400;
+		font-size: 5.5vw;
+		line-height: 100%;
+		color: #4242E0;
+	}
+
+	.fragment-container {
+        position: relative;
+    }
+
+	.answer{
+		font-size: 1.5vw;
+	}
+
+	.fragment {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: rgba(255, 255, 255, 0.05);
+        pointer-events: none;
+        overflow: visible;
+        transition: all 0.4s ease-in;
+    }
+    
+    p, a{
+		font-weight: 400;
+		line-height: 100%;
+		color: #4242E0;
+	}
+
+    p{
+		font-size: 2vw;
+	}
+
+	a{
+		font-size: 1rem;
+	}
+
+    .letter-answer{
+        font-family: 'Bebas Neue', cursive;
+        font-size: 2vw;
+    }
+
+    .appearing {
+        opacity: 0;
+        animation: appear 400ms forwards;
+    }
+
+    @keyframes appear {
+        to {
+            opacity: 1;
+        }
+    }
+    @media screen and (max-width:768px){
+        .fragment-container{
+            max-width: 80%;
+        }
+		p{
+			font-size: 2rem;
+		}
+        .answer, .letter-answer{
+            font-size: 1.5rem;
+        }
+	}
+    @media screen and (max-width:512px){
+        p{
+			font-size: 1.5rem;
+		}
+        .answer, .letter-answer{
+            font-size: 1rem;
+        }
+        
+    }
+</style>
+<script>
+	import * as d3 from 'd3';
+    import { navigate } from 'astro:transitions/client';
+    import { score } from '../../store/score';
+
+    let nextQuestionElement = document.querySelector('.question') as HTMLElement;
+    let nextQuestionIndex = nextQuestionElement?.dataset.nextQuestion ? parseInt(nextQuestionElement.dataset.nextQuestion) : null;
+    let optionsElement = document.querySelector('section.Options') as HTMLElement;
+    let answers = JSON.parse(optionsElement?.dataset.options || '{}');
+
+    let timerInterval: number | null = null;
+    let countdown = 30;
+
+    const startTimer = () => {
+        let timer = document.querySelector('#timer') as HTMLElement;
+        countdown = 30;
+        timer.textContent = `${countdown}s`;
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            countdown--;
+            timer.textContent = `${countdown}s`;
+
+            if (countdown <= 0) {
+                clearInterval(timerInterval!);
+                timerInterval = null;
+                handleCardClick();
+            }
+        }, 1000);
+    };
+
+    let fragmentCount = 0
+    let incorrectAnswers: string[] = [];
+
+	const generateRandomPoints = (count: number) => {
+        const points = [];
+        for (let i = 0; i < count-4; i++) {
+            points.push({
+                x: Math.random() * 100,
+                y: Math.random() * 100
+            });
+        }
+        points.push({ x: 0, y: 0 });
+        points.push({ x: 0, y: 100 });
+        points.push({ x: 100, y: 100 });
+        points.push({ x: 100, y: 0 });
+        return points;
+    };
+
+    const generatePolygons = (points: { x: number; y: number; }[]) => {
+        const delaunay = d3.Delaunay.from(points.map((p: { x: any; y: any; }) => [p.x, p.y]));
+        const voronoi = delaunay.voronoi([0, 0, 100, 100]);
+        const polygons = [];
+
+        for (let i = 0; i < points.length; i++) {
+            const cell = voronoi.cellPolygon(i);
+            if (cell) {
+                polygons.push(cell.map(p => ({ x: p[0], y: p[1] })));
+            }
+        }
+        return polygons;
+    };
+
+    const createClipPath = (polygon: any[]) => {
+        const points = polygon.map((point: { x: any; y: any; }) => `${point.x}% ${point.y}%`).join(", ");
+        return `polygon(${points})`;
+    };
+    const createFragment = (card: { cloneNode: (arg0: boolean) => any; }, polygon: any, index: any, answer: string) => {
+        const fragment = card.cloneNode(true);
+        fragment.classList.add('fragment', `broken${index}`);
+        const whiteLayer = document.createElement('div');
+        whiteLayer.style.position = 'absolute';
+        whiteLayer.style.top = '0';
+        whiteLayer.style.left = '0';
+        whiteLayer.style.width = '100%';
+        whiteLayer.style.height = '100%';
+        whiteLayer.style.backgroundColor = 'rgba(255, 255, 255, 0.4)';
+        fragment.appendChild(whiteLayer);
+        fragment.removeAttribute('data-astro-transition-scope');
+        fragment.style.viewTransitionName = `${answer}${index}`;
+        fragment.style.clipPath = createClipPath(polygon);
+        return fragment;
+    };
+
+    const getDirection = (x: number, y: number, m: number, point: { x: number; y: number; }) =>{
+        const distanceRatio = 0.2;
+        if(x < point.x){
+            return {x: (point.x+distanceRatio),y:m*(point.x+distanceRatio) + (point.y - m * point.x)};
+        }else if(x > point.x){
+            return {x: (point.x-distanceRatio),y: m*(point.x-distanceRatio) + (point.y - m * point.x)};
+        }else if(y< point.y){
+            return {x: ((point.y+distanceRatio)-((point.y) - m * point.x ))/m ,y: (point.y+distanceRatio)};
+        }else if(y > point.y){
+            return {x: ((point.y-distanceRatio)-((point.y) - m * point.x ))/m ,y: (point.y-distanceRatio)};
+        }else{
+            return {x: point.x, y: point.y};
+        }
+    }
+const handleCardClick = (card?: HTMLElement) => {
+        const nextButton = document.querySelector('.next-button') as HTMLButtonElement;
+        const correctAnswers = Object.entries(answers)
+            .filter(([key, value]) => value === 'true')
+            .map(([key]) => key.replace('_correct', '').replace('answer_', 'answer-'));
+        const correctCards = document.querySelectorAll(correctAnswers.map(answer => `.${answer}`).join(', ')) as NodeListOf<HTMLElement>;
+
+        const classList = card ? Array.from(card.classList) : [];
+        const answerClass = classList.find(cls => cls.startsWith('answer-')) || '';
+
+        const currentScore = score.get();
+
+        const isCorrect = correctAnswers.includes(answerClass || '');
+
+        if (timerInterval) clearInterval(timerInterval);
+
+        if (isCorrect) {
+            score.set(currentScore + 1);
+        } else {
+            score.set(-1);             // Indicates incorrect answer/ didn't answer on time
+            setTimeout(() => {
+                score.set(currentScore); // Restore score
+            }, 0);
+        }
+
+        correctCards.forEach((correctCard) => {
+            correctCard.classList.add('highlight');
+            correctCard.querySelectorAll('*').forEach((element: Element) => {
+                    (element as HTMLElement).classList.add("highlight");
+                });
+            correctCard.removeEventListener('click', (correctCard as any)._clickFn);
+            correctCard.removeEventListener("mouseover", (correctCard as any)._overFn);
+            correctCard.removeEventListener("mouseleave", (correctCard as any)._leaveFn);
+        })
+
+        incorrectAnswers = Object.entries(answers)
+            .filter(([key, value]) => value === 'false')
+            .map(([key]) => key.replace('_correct', '').replace('answer_', 'answer-'));
+        const incorrectCards = document.querySelectorAll(incorrectAnswers.map(answer => `.${answer}`).join(', ')) as NodeListOf<HTMLElement>;
+        incorrectCards.forEach((incorrectCard) => {
+            incorrectCard.removeEventListener('click', (incorrectCard as any)._clickFn);
+            incorrectCard.removeEventListener("mouseover", (incorrectCard as any)._overFn);
+            incorrectCard.removeEventListener("mouseleave", (incorrectCard as any)._leaveFn);
+            const classList = Array.from(incorrectCard.classList);
+            const answerClass = classList.find(cls => cls.startsWith('answer-'));
+            const answerLetter = answerClass?.split('-')[1] || '';
+
+            incorrectCard.classList.remove('rounded-lg', 'border', 'shadow-md', 'highlight');
+            fragmentCount = Math.floor(Math.random() * (10 - 4 + 1)) + 4;
+            const rect = (incorrectCard as HTMLElement)?.children[0].getBoundingClientRect();
+            const buttonRect = nextButton.getBoundingClientRect();
+            const groundY = buttonRect.top;
+            const x = 50;
+            const y = 50;
+            const points = generateRandomPoints(fragmentCount);
+            const polygons = generatePolygons(points);
+
+            for (let i = 0; i < polygons.length; i++) {
+                const fragment = createFragment(incorrectCard, polygons[i], i, answerLetter);
+                const deltaX = x - points[i].x;
+                const deltaY = y - points[i].y;
+                const m = deltaY / deltaX;
+                const direction = getDirection(x, y, m, points[i]);
+                incorrectCard.parentElement?.appendChild(fragment); 
+                requestAnimationFrame(() => {
+                    fragment.classList.add('border', 'shadow-md', 'opacity-40', '-z-10');
+                    fragment.style.transform = `translate(${(direction.x - points[i].x) * rect.width}px, ${(direction.y - points[i].y) * rect.height}px)`;
+                });
+
+                const fall = groundY - rect.top + (rect.height / 2);
+                setTimeout(() => {
+                    const rotation = (Math.random() - 0.5) * 20; // Random rotation between -10 and 10 degrees
+                    fragment.style.transform = `translate(${(direction.x - points[i].x) * rect.width}px, ${fall}px) rotate(${rotation}deg)`;
+                }, 400);
+            }
+            
+            incorrectCard.querySelectorAll('*').forEach((element: Element) => {
+                (element as HTMLElement).style.visibility = 'hidden';
+            });
+            incorrectCard.style.visibility = 'hidden';
+        })
+        nextButton.disabled = false;
+        nextButton.classList.add('cursor-pointer');
+    };
+
+    const handleMouseOver = (card: HTMLElement) => () => {
+        card.classList.add("highlight");
+        card.querySelectorAll('*').forEach((element: Element) => {
+            (element as HTMLElement).classList.add("highlight");
+        });
+    };
+
+    const handleMouseLeave = (card: HTMLElement) => () => {
+        card.classList.remove("highlight");
+        card.querySelectorAll('*').forEach((element: Element) => {
+            (element as HTMLElement).classList.remove("highlight");
+        });
+    };
+
+	const initializeCardListeners = () => {
+        nextQuestionElement = document.querySelector('.question') as HTMLElement;
+        nextQuestionIndex = nextQuestionElement?.dataset.nextQuestion ? parseInt(nextQuestionElement.dataset.nextQuestion) : null;
+        optionsElement = document.querySelector('section.Options') as HTMLElement;
+        answers = JSON.parse(optionsElement?.dataset.options || '{}');
+        document.querySelectorAll(".valid-answer").forEach((card) => {
+            const clickFn = () => handleCardClick(card as HTMLElement);
+            const overFn = handleMouseOver(card as HTMLElement);
+            const leaveFn = handleMouseLeave(card as HTMLElement);
+
+            card.addEventListener("click", clickFn);
+            card.addEventListener("mouseover", overFn);
+            card.addEventListener("mouseleave", leaveFn);
+
+            (card as any)._clickFn = clickFn;
+            (card as any)._overFn = overFn;
+            (card as any)._leaveFn = leaveFn;
+        });
+        document.querySelector(".next-button")?.addEventListener("click", () => {
+            const incorrectAnswersLetters = incorrectAnswers.map(answer => answer.replace('answer-', ''));
+            if(!nextQuestionIndex){
+                navigate('/results');
+            }else{
+                navigate(`/quiz/${Number(nextQuestionIndex)}?fc=${fragmentCount}&l=${JSON.stringify(incorrectAnswersLetters)}`);
+            }
+        });
+    };
+
+    initializeCardListeners();
+
+    document.addEventListener('astro:after-swap', () => {
+        initializeCardListeners();
+    });
+    document.addEventListener('astro:page-load', () => {
+        setTimeout(() => {
+            document.querySelectorAll('.fragment').forEach(fragment => {
+                fragment.remove();
+            });
+        }, 400);
+        startTimer();
+    });
+</script>

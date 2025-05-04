@@ -1,0 +1,155 @@
+---
+interface Props{
+    mainColor: string
+    secondaryColor?: string
+    figureColor: string
+    secondaryFigureColor?: string
+}
+
+const defaultConfig = {
+    mainColor: "4242E0",
+    secondaryColor: "",
+    figureColor: "4242E0",
+    secondaryFigureColor: ""
+}
+const { mainColor, secondaryColor, figureColor, secondaryFigureColor } = {
+	...defaultConfig,
+    ...Astro.props
+};
+---
+<astro-bgcanvas class="fixed top-0 left-0 w-full h-full -z-10" transition:name="bg" data-colors={JSON.stringify({mainColor, secondaryColor, figureColor, secondaryFigureColor})}>
+    <canvas id="bgCanvas" transition:persist></canvas>
+</astro-bgcanvas>
+<script>
+	// Using a canvas for the background due to the limitation of View Transitions
+	// which do not preserve the state of CSS animations.
+	// For more details, refer to: https://docs.astro.build/en/guides/view-transitions/
+    class BgCanvas extends HTMLElement {
+        connectedCallback() {
+            const { mainColor, secondaryColor, figureColor, secondaryFigureColor } = JSON.parse(this.dataset.colors ?? '{}');
+            const canvas = this.querySelector("#bgCanvas") as HTMLCanvasElement;
+            const ctx = canvas?.getContext("2d") as CanvasRenderingContext2D;
+            const figure = document.getElementById("figure") as HTMLElement;
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resizeCanvas();
+            window.addEventListener("resize", resizeCanvas);
+
+            let currentColor = hexToRgb(mainColor) ?? [66, 66, 224];
+            let targetColor = hexToRgb(secondaryColor) ?? currentColor;
+
+            let currentFigureColor = hexToRgb(figureColor) ?? [235, 239, 242];
+            let targetFigureColor = hexToRgb(secondaryFigureColor) ?? currentFigureColor;
+
+            let currentButtonColor = [212, 224, 233];
+            let targetButtonColor = currentButtonColor;
+
+            let isStatic = !secondaryColor;
+
+            function hexToRgb(hex: string) {
+                const match = hex.match(/[A-Fa-f0-9]{2}/g);
+                return match ? match.map((x: string) => parseInt(x, 16)) : null;
+            }
+            function lerp(a: number, b: number, t: number) {
+                return a + (b - a) * t;
+            }
+
+            function animate() {
+                const nextButton = document.querySelector(".next-button") as HTMLButtonElement;
+                if(nextButton && nextButton.disabled) {
+                    currentButtonColor
+                }
+                
+                if (!isStatic) {
+                    for (let i = 0; i < 3; i++) {
+                        currentColor[i] = lerp(currentColor[i], targetColor[i], 0.01);
+                        currentFigureColor[i] = lerp(currentFigureColor[i], targetFigureColor[i], 0.01);
+                        currentButtonColor[i] = lerp(currentButtonColor[i], targetButtonColor[i], 0.01);
+                    }
+                }
+                const textElements = document.querySelectorAll("h1, p, a");
+                textElements.forEach((el) => {
+                    if (el.classList.contains("alternative")) {
+                        (el as HTMLElement).style.color = `rgb(${currentColor.map(Math.round).join(",")})`;
+                    } else{
+                        (el as HTMLElement).style.color = `rgb(${currentFigureColor.map(Math.round).join(",")})`;
+                    }
+                });
+
+                const options = document.querySelectorAll(".valid-answer, .letter-answer, .answer");
+                options.forEach((el) => {
+                    if(el.classList.contains("valid-answer") || el.classList.contains("answer")) { 
+                        (el as HTMLElement).style.borderColor = `rgb(${currentFigureColor.map(Math.round).join(",")})`;
+                    }
+                    if(el.classList.contains("highlight")) {
+                        if(el.classList.contains("valid-answer")) {
+                            (el as HTMLElement).style.backgroundColor = `rgb(${currentFigureColor.map(Math.round).join(",")})`;
+                        }else if (el.classList.contains("letter-answer")) {
+                            (el as HTMLElement).style.backgroundColor = `rgb(${currentColor.map(Math.round).join(",")})`;
+                            (el as HTMLElement).style.color = `rgb(${currentFigureColor.map(Math.round).join(",")})`;
+                        }else if(el.classList.contains("answer")) {
+                            (el as HTMLElement).style.color = `rgb(${currentColor.map(Math.round).join(",")})`;
+                        }
+                    }else{
+                        if(el.classList.contains("valid-answer")) {
+                            (el as HTMLElement).style.backgroundColor = `rgb(${currentColor.map(Math.round).join(",")})`;
+                        }else if (el.classList.contains("letter-answer")) {
+                            (el as HTMLElement).style.backgroundColor = `rgb(${currentFigureColor.map(Math.round).join(",")})`;
+                            (el as HTMLElement).style.color = `rgb(${currentColor.map(Math.round).join(",")})`;
+                        }
+                    }
+                })
+
+                if (nextButton) {
+                    nextButton.style.backgroundColor = `rgb(${currentFigureColor.map(Math.round).join(",")})`;
+                }
+                
+                if (figure) {
+                    const rgb = currentFigureColor.map(Math.round).join(",");
+                    figure.className = `figure-color-${rgb.replace(/,/g, "-")}`;
+                }
+
+                ctx.fillStyle = `rgb(${currentColor.map(Math.round).join(",")})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                requestAnimationFrame(animate);
+            }
+
+            setInterval(() => {
+                isStatic = !secondaryColor;
+                const nextButton = document.querySelector(".next-button") as HTMLButtonElement;
+                const alt = targetColor === hexToRgb(mainColor); // C8D2DA
+                const rgb = hexToRgb(alt ? secondaryColor : mainColor);
+
+                const altFigure = targetFigureColor === hexToRgb(figureColor); // 4242E0
+                const figureRgb = hexToRgb(altFigure ? secondaryFigureColor : figureColor);
+
+                const altButton = targetButtonColor[0] === 200; // C8D2DA
+                const buttonRgb = hexToRgb(altButton ? "2A2C2D" : "C8D2DA");
+
+                const altButtonDisabled = targetButtonColor[0] === 212; // 4242E0
+                const buttonDisabledRgb = hexToRgb(altButtonDisabled ? "353739" : "D4E0E9");
+                if (rgb && figureRgb && buttonRgb) {
+                    targetColor = rgb;
+                    targetFigureColor = figureRgb;
+                    targetButtonColor = buttonRgb;
+                    if(nextButton && nextButton.disabled && buttonDisabledRgb) {
+                        targetButtonColor = buttonDisabledRgb;
+                    }
+                } else {
+                    console.error("Error converting hex to RGB");
+                    targetColor = [0, 0, 0];
+                    targetFigureColor = [0, 0, 0];
+                    targetButtonColor = [0, 0, 0];
+                }
+            }, 25000); // change color every 25 seconds
+            animate();
+        }
+    }
+    document.addEventListener("astro:after-swap", () => {
+
+    })
+    customElements.define('astro-bgcanvas', BgCanvas);
+</script>

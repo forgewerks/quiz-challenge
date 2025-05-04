@@ -1,0 +1,70 @@
+---
+import AnimatedBackground from "../components/AnimatedBackground.astro";
+import "../styles/global.css";
+import ClientRouter from "astro/components/ClientRouter.astro";
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Quizzler: Challenge your intellect with our engaging quiz app, designed to test your knowledge across a variety of topics." />
+		<meta name="keywords" content="quiz, knowledge, test, trivia, challenge, fun, learning" />
+		<meta name="author" content="NaryalinDev" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+		<meta property="og:title" content="Quizzler: Test Your Knowledge" />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://quiz.astro.build" />
+		<meta property="og:image" content="https://quiz.astro.build/svg/Quiz.svg" />
+		<meta property="og:description" content="Test your knowledge with this quiz built with Astro" />
+		<meta property="og:site_name" content="Quizzler" />
+		<meta property="og:locale" content="en_US" />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="Quizzler: Test Your Knowledge" />
+		<meta name="twitter:description" content="Test your knowledge with this quiz built with Astro" />
+		<meta name="twitter:image" content="https://quiz.astro.build/svg/Quiz.svg" />
+		<meta name="twitter:site" content="@Naryalinde" />
+		<meta name="twitter:creator" content="@Naryalinde" />
+
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<ClientRouter />
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
+<style is:global>
+	@font-face {
+		font-family: 'Bebas Neue';
+		src: url('/fonts/Bebas_Neue/BebasNeue-Regular.woff2') format('woff2'),
+			url('/fonts/Bebas_Neue/BebasNeue-Regular.woff') format('woff'),
+			url('/fonts/Bebas_Neue/BebasNeue-Regular.ttf') format('truetype');
+		font-weight: normal;
+		font-style: normal;
+		font-display: swap;
+	}
+	@font-face {
+		font-family: 'Sora';
+		src: url('/fonts/Sora/Sora-VariableFont_wght.woff2') format('woff2'),
+			url('/fonts/Sora/Sora-VariableFont_wght.woff') format('woff'),
+			url('/fonts/Sora/Sora-VariableFont_wght.ttf') format('truetype');
+		font-weight: normal;
+		font-style: normal;
+		font-display: swap;
+	}
+	h1, h2{
+		font-family: 'Bebas Neue', cursive;
+	}
+
+	p, a{
+		font-family: 'Sora', sans-serif;
+	}
+</style>

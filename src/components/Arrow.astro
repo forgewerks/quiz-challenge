@@ -1,0 +1,24 @@
+---
+import ArrowSVG from '../assets/Arrow.svg';
+---
+<ArrowSVG class="arrow w-6 h-6"/>
+<style>
+    .arrow.go {
+        animation: animate 2s infinite;
+    }
+
+	@keyframes animate {
+		0% {
+			transform: translateX(0px);
+		}
+		25% {
+			transform: translateX(5px);
+		}
+		50% {
+			transform: translateX(0px);
+		}
+        100% {
+            transform: translateX(0px);
+        }
+	}
+</style>

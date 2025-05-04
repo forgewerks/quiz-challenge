@@ -1,0 +1,209 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Arrow from "../components/Arrow.astro";
+import Figure from "../components/Figure.astro";
+import { questions as questionsStore } from "../store/questions";
+import { getQuizzes } from "../services/quizAPI";
+import AnimatedBackground from '../components/AnimatedBackground.astro';
+
+// Get questions
+let questions = await getQuizzes();
+let firstId
+if (!questions || questions.length === 0) {
+	questions = [
+	{
+		id: 7368,
+		question: "Which command redirects only the standard error to a file?",
+		description: "Understanding how to capture error messages separately.",
+		answers: {
+		answer_a: "command 2> error.log",
+		answer_b: "command > error.log",
+		answer_c: "command 1> error.log",
+		answer_d: "command >> error.log",
+		},
+		multiple_correct_answers: "false",
+		correct_answers: {
+		answer_a_correct: "true",
+		answer_b_correct: "false",
+		answer_c_correct: "false",
+		answer_d_correct: "false",
+		answer_e_correct: "false",
+		answer_f_correct: "false",
+		},
+		correct_answer: null,
+		explanation: "Using `2>` redirects standard error output to a file.",
+		tip: null,
+		tags: [
+		{
+			name: "BASH",
+		},
+		],
+		category: "Docker",
+		difficulty: "Easy",
+	},
+	{
+		id: 7369,
+		question: "What does the Docker command 'docker ps' do?",
+		description: "Understanding basic Docker commands.",
+		answers: {
+		answer_a: "Lists all running containers",
+		answer_b: "Lists all containers (running and stopped)",
+		answer_c: "Lists all Docker images",
+		answer_d: "Stops all running containers",
+		},
+		multiple_correct_answers: "false",
+		correct_answers: {
+		answer_a_correct: "true",
+		answer_b_correct: "false",
+		answer_c_correct: "false",
+		answer_d_correct: "false",
+		answer_e_correct: "false",
+		answer_f_correct: "false",
+		},
+		correct_answer: null,
+		explanation: "The 'docker ps' command lists all currently running containers.",
+		tip: "Use 'docker ps -a' to see all containers including stopped ones.",
+		tags: [
+		{
+			name: "Docker",
+		},
+		],
+		category: "Docker",
+		difficulty: "Medium",
+	},
+	{
+		id: 7370,
+		question: "Which SQL statement is used to extract data from a database?",
+		description: "Understanding basic SQL commands.",
+		answers: {
+		answer_a: "SELECT",
+		answer_b: "EXTRACT",
+		answer_c: "GET",
+		answer_d: "OPEN",
+		},
+		multiple_correct_answers: "false",
+		correct_answers: {
+		answer_a_correct: "true",
+		answer_b_correct: "false",
+		answer_c_correct: "false",
+		answer_d_correct: "false",
+		answer_e_correct: "false",
+		answer_f_correct: "false",
+		},
+		correct_answer: null,
+		explanation: "The SELECT statement is used to select data from a database.",
+		tip: null,
+		tags: [
+		{
+			name: "SQL",
+		},
+		{
+			name: "Database",
+		},
+		],
+		category: "SQL",
+		difficulty: "Hard",
+	},
+	]
+}
+firstId = questions[0].id;
+questionsStore.set(questions);
+---
+
+<Layout title="Welcome to Quizzler">
+	<AnimatedBackground mainColor="4242e0" figureColor='EBEFF2'/>
+	<main class="min-w-screen min-h-screen w-full">
+		<Figure/>
+		<section id="hero" class="absolute left-2/5 top-4/12" transition:name="hero">
+			<h1 class="text-center">Quizzler</h1>
+			<div id="By" class="flex flex-row gap-[1vw] justify-end">
+				<p class="text-center mt-[-0.5vw]">By:</p>
+				<div class="flex flex-row items-center justify-center gap-[0.5vw]">
+					<img src="/Forge Isotype.svg" alt="Forge Isotype" class="h-[3vw] w-auto">
+					<img src="/Forge Logotype.svg" alt="Forge Logotype" class="h-[3vw] w-auto">
+				</div>
+			</div>
+			<div class="flex justify-end mt-[3vw]">
+				<a href=`/quiz/${firstId}` class="flex justify-end items-center hover:underline w-fit" transition:name="link">
+					Let's start the Quiz
+					<Arrow/>
+				</a>
+			</div>
+		</section>
+	</main>
+</Layout>
+
+	
+<style>
+
+	h1{
+		font-weight: 400;
+		font-size: 16vw;
+		line-height: 76%;
+		color: #EBEFF2;
+	}
+
+	p, a{
+		font-weight: 400;
+		line-height: 100%;
+		color: #EBEFF2;
+		text-transform: uppercase;
+	}
+
+	p{
+		font-size: 1vw;
+	}
+
+	a{
+		font-size: 1rem;
+	}
+
+	@media screen and (max-width:1024px){
+		h1{
+			font-size: 24vw;
+		}
+		p{
+			font-size: 1.5vw;
+		}
+		#hero{
+			left: 22%;
+		}
+	}
+
+	@media screen and (max-width:768px){
+		h1{
+			font-size: 32vw;
+		}
+
+		p{
+			font-size: 2.5vw;
+		}
+
+		#hero{
+			left: 0;
+			top: 0;
+			position: relative;
+			align-items: center;
+			justify-content: center;
+		}
+
+		#figure{
+			top: -23%;
+		}
+
+		main{
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+	}
+</style>
+<script>
+	import { score } from "../store/score";
+	score.set(0);
+	const anchor = document.querySelector('a') as HTMLAnchorElement;
+	const arrow = document.getElementsByClassName('arrow')[0] as HTMLElement;
+	anchor.addEventListener('mouseover', () => arrow.classList.add('go'));
+	anchor.addEventListener('mouseout', () => arrow.classList.remove('go'));
+</script>

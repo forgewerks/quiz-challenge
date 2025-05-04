@@ -1,0 +1,98 @@
+---
+
+---
+<div id="ai-comments-container" class="fixed w-full h-full -z-10" transition:persist transition:name="ai-comments-container"></div>
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+<script>
+    import { score } from "../store/score";
+    let container = document.getElementById('ai-comments-container');
+
+    let actualScore = score.get();
+
+    score.subscribe(value => {
+        if (value === -1) {
+            fetchAndDisplayComments('incorrect');
+        } else {
+            if(value > actualScore) {
+                fetchAndDisplayComments('emotion');
+            }
+        }
+    });
+
+    await fetchAndDisplayComments('support');
+
+    document.addEventListener('astro:after-swap', async () => {
+        container = document.getElementById('ai-comments-container');
+        actualScore = score.get();
+        await fetchAndDisplayComments('support');
+    })
+
+    async function fetchAndDisplayComments(state: string, interval = 1000) {
+        try {
+            const res = await fetch('/api/public', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ state })
+            });
+
+            if (!res.ok) {
+                throw new Error('Error fetching dialogs');
+            }
+
+            const dialogs = await res.json();
+
+            dialogs.forEach((text: string | null, i: number) => {
+                setTimeout(() => {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'ai-comment-bubble';
+                    bubble.style.cssText = `
+                        position: absolute;
+                        background: ${state === 'incorrect' ? 'rgba(255, 0, 0, 0.8)' : state === 'emotion' ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)'};
+                        color: #000;
+                        padding: 0.5rem 1rem;
+                        border-radius: 1rem;
+                        font-size: 0.9rem;
+                        max-width: 250px;
+                        animation: fadeInUp 0.4s ease-out;
+                        opacity: 0.4;
+                   `;
+                    
+                    bubble.textContent = text;
+
+                    // Avoid appear in the center of the screen
+                    const bottom = getRandomEdgePosition(5, 20, 80, 95);
+                    const left = getRandomEdgePosition(5, 20, 80, 95);
+
+                    bubble.style.bottom = `${bottom-10}%`;
+                    bubble.style.left = `${left-10}%`;
+
+                    container?.appendChild(bubble);
+
+                    // Auto-remove
+                    setTimeout(() => {
+                        bubble.remove();
+                    }, 5000 + Math.random() * 3000);
+                }, i * interval);
+            });
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    function getRandomEdgePosition(min1: number, max1: number, min2: number, max2: number) {
+        return Math.random() < 0.5
+            ? min1 + Math.random() * (max1 - min1)
+            : min2 + Math.random() * (max2 - min2);
+    }
+</script>

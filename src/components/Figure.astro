@@ -1,0 +1,72 @@
+---
+
+---
+
+<div id="figure" transition:name="figure" transition:persist></div>
+
+<style>
+    #figure {
+        position: fixed;
+        height: 100vh;
+        z-index: -10;
+    }
+</style>
+<script>
+    import * as THREE from 'three';
+
+    const figure = document.getElementById('figure') as HTMLElement;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.z = 3;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+    figure.appendChild(renderer.domElement);
+
+    const vertices = [
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(-1, -0.5, 1),
+      new THREE.Vector3(1, -0.5, 1),
+      new THREE.Vector3(0, -0.5, -1),
+    ];
+
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array([
+        ...vertices[0].toArray(), ...vertices[1].toArray(), ...vertices[2].toArray(),
+        ...vertices[0].toArray(), ...vertices[2].toArray(), ...vertices[3].toArray(),
+        ...vertices[0].toArray(), ...vertices[3].toArray(), ...vertices[1].toArray(),
+        ...vertices[1].toArray(), ...vertices[3].toArray(), ...vertices[2].toArray(),
+    ]);
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    function extractColorFromClass(el: HTMLElement) {
+    const className = [...el.classList].find(c => c.startsWith("figure-color-"));
+    if (!className) return [0, 1, 1]; // fallback: cian
+    const [, r, g, b] = className.match(/figure-color-(\d+)-(\d+)-(\d+)/) || [];
+    return [r, g, b].map(n => parseInt(n) / 255);
+    }
+
+    const initialColor = extractColorFromClass(figure);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: new THREE.Color(...initialColor) });
+
+    const edges = new THREE.EdgesGeometry(geometry);
+    const lines = new THREE.LineSegments(edges, lineMaterial);
+    scene.add(lines);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        lines.rotation.y += 0.01;
+        lines.rotation.x += 0.005;
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+    });
+</script>
